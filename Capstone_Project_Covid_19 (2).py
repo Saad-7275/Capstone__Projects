@@ -237,29 +237,36 @@ t_cases_recovery = data.groupby('Date')['Recovered'].sum().reset_index()
 t_cases_recovery
 
 
-# In[34]:
+# Group data by date and sum the values for relevant columns
+t_cases = data.groupby('Date')['Confirmed'].sum().reset_index()
+t_cases_active = data.groupby('Date')['Active'].sum().reset_index()
+t_cases_death = data.groupby('Date')['Deaths'].sum().reset_index()
+t_cases_recovery = data.groupby('Date')['Recovered'].sum().reset_index()
 
 
 #plot date vs confirmed cases using barplot 
-plt.bar(t_cases['Date'],t_cases['Confirmed'], color = 'red')
+plt.figure(figsize=(14, 7))
+plt.bar(t_cases['Date'], t_cases['Confirmed'], color='red')
 plt.xlabel('Date')
 plt.ylabel('Confirmed cases')
 plt.title('Total confirmed cases over time')
+plt.xticks(rotation=45)
 plt.show()
 
 
-# In[35]:
+
 
 
 #plot date vs deaths cases using barplot 
-plt.bar(t_cases_death['Date'],t_cases_death['Deaths'], color = 'blue')
+plt.figure(figsize=(14, 7))
+plt.bar(t_cases_death['Date'], t_cases_death['Deaths'], color='blue')
 plt.xlabel('Date')
-plt.ylabel('Deaths cases')
-plt.title('Total Deaths cases over time')
+plt.ylabel('Deaths')
+plt.title('Total deaths over time')
+plt.xticks(rotation=45)
 plt.show()
 
 
-# In[36]:
 
 
 #top 20 countries with most cases
@@ -267,23 +274,26 @@ t_20 = gp.groupby('Country')['Active'].sum().reset_index().sort_values(by = 'Act
 t_20
 
 
-# In[37]:
 
 
-#bar plot --> seaborn
-import seaborn as sns
-sns.barplot(y = t_20.Active,x = t_20.Country)
+
+# Bar plot using Seaborn for top 20 countries with the most active cases
+plt.figure(figsize=(14, 7))
+sns.barplot(y=t_20.Active, x=t_20.Country, palette='viridis')
+plt.xlabel('Country')
+plt.ylabel('Active Cases')
+plt.title('Top 20 Countries with Most Active Cases')
+plt.xticks(rotation=45)
 plt.show()
 
 
-# In[38]:
+
 
 
 ##Facebook Prophet
 ##--> an open sourve tool for forecasting the time series 
 
 
-# In[39]:
 
 
 t_cases #confirmed
@@ -292,33 +302,18 @@ t_cases_death #death
 t_cases_recovery #recovery
 
 
-# In[ ]:
-
-
-
-
-
-# In[41]:
-
 
 from prophet import Prophet
 
 
-# In[42]:
-
 
 t_cases.head()
 
-
-# In[43]:
 
 
 # t_cases --> comfirmed cases data
 t_cases.columns = ['ds','y']
 t_cases.head()
-
-
-# In[44]:
 
 
 t_cases['ds'] = pd.to_datetime(t_cases['ds'])
@@ -354,45 +349,45 @@ future
 # In[49]:
 
 
-forecase = model.predict(future)
-forecase
+forecast = model.predict(future)
+forecast
 
 
 # In[50]:
 
 
-forecase.info()
+forecast.info()
 
 
 # In[51]:
 
 
-forecase[['yhat','yhat_lower','yhat_upper']] = forecase[['yhat','yhat_lower','yhat_upper']].astype(int)
+forecast[['yhat','yhat_lower','yhat_upper']] = forecast[['yhat','yhat_lower','yhat_upper']].astype(int)
 
 
 # In[52]:
 
 
-forecase.info()
+forecast.info()
 
 
 # In[53]:
 
 
-forecase[['ds','yhat','yhat_lower','yhat_upper']]
+forecast[['ds','yhat','yhat_lower','yhat_upper']]
 
 
 # In[54]:
 
 
-plot_time = model.plot(forecase)
+plot_time = model.plot(forecast)
 plot_time
 
 
 # In[55]:
 
 
-model.plot_components(forecase)
+model.plot_components(forecast)
 
 
 # In[ ]:
