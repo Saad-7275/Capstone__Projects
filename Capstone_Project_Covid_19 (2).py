@@ -390,8 +390,112 @@ plot_time
 model.plot_components(forecast)
 
 
-# In[ ]:
+### 1. Nature of Time Series Data
+
+## The COVID-19 dataset consists of daily reported cases as we have seen soo far of confirmed, active, recovered, and death counts over a period of time. 
+# This type of data is known as time series data, where observations are made sequentially over time. 
+# Analyzing and predicting future trends from time series data requires a model that can capture the temporal dependencies and patterns inherent in the data.
+
+#### 2. LSTM's Strength in Capturing Long-Term Dependencies
+
+## Long Short-Term Memory (LSTM) networks are a special kind of Recurrent Neural Network (RNN) capable of learning long-term dependencies.
+# LSTMs are designed to overcome the limitations of traditional RNNs by effectively capturing information from previous time steps, even when there are large gaps or intervals. 
+# This is particularly important for COVID-19 data, where the number of cases can be influenced by events and trends from several days or weeks prior.
+
+### 3. Handling Non-Linear and Complex Patterns
+
+# The spread of COVID-19 is influenced by various factors such as government policies, public behavior, and random events, making the trend non-linear and complex. 
+# LSTMs, with their ability to learn and model non-linear relationships, are well-suited to capture these intricate patterns and provide more accurate predictions compared to linear models.
+
+## 4. Sequential Prediction Capability
+
+## LSTMs are inherently designed for sequential data and are capable of making one-step-ahead forecasts that can be extended to multi-step forecasts. 
+ ## This capability aligns perfectly with our objective of predicting future COVID-19 cases based on historical data.
 
 
+from sklearn.preprocessing import MinMaxScaler
+from keras.models import Sequential
+from keras.layers import LSTM, Dense
+from datetime import datetime
+
+# Group data by date and sum the values for relevant columns
+
+t_cases = data.groupby('Date')['Confirmed'].sum().reset_index()
+t_cases.columns = ['ds', 'y']
+
+# Convert 'ds' to datetime format
+t_cases['ds'] = pd.to_datetime(t_cases['ds'])
+
+# Data preparation for LSTM
+# Scaling the data
+
+scaler = MinMaxScaler(feature_range=(0, 1))
+scaled_data = scaler.fit_transform(t_cases['y'].values.reshape(-1, 1))
+
+# Create a function to prepare the dataset
+def prepare_data(data, time_step=1):
+    X, y = [], []
+    for i in range(len(data) - time_step - 1):
+        a = data[i:(i + time_step), 0]
+        X.append(a)
+        y.append(data[i + time_step, 0])
+    return np.array(X), np.array(y)
+
+# Set the time step
+time_step = 10
+
+# Prepare the data
+X, y = prepare_data(scaled_data, time_step)
+
+# Reshape the input to be [samples, time steps, features] which is required for LSTM
+X = X.reshape(X.shape[0], X.shape[1], 1)
+
+# Split the data into training and testing sets
+train_size = int(len(X) * 0.8)
+test_size = len(X) - train_size
+X_train, X_test = X[:train_size], X[train_size:]
+y_train, y_test = y[:train_size], y[train_size:]
+
+# Build the LSTM model
+model = Sequential()
+model.add(LSTM(50, return_sequences=True, input_shape=(time_step, 1)))
+model.add(LSTM(50, return_sequences=False))
+model.add(Dense(25))
+model.add(Dense(1))
+
+# Compile the model
+model.compile(optimizer='adam', loss='mean_squared_error')
+
+# Train the model
+model.fit(X_train, y_train, batch_size=1, epochs=1)
+
+# Make predictions
+train_predict = model.predict(X_train)
+test_predict = model.predict(X_test)
+
+# Invert predictions
+train_predict = scaler.inverse_transform(train_predict)
+test_predict = scaler.inverse_transform(test_predict)
+
+# Calculate RMSE
+train_rmse = np.sqrt(np.mean(((train_predict - scaler.inverse_transform(y_train.reshape(-1, 1))) ** 2)))
+test_rmse = np.sqrt(np.mean(((test_predict - scaler.inverse_transform(y_test.reshape(-1, 1))) ** 2)))
+
+print(f'Train RMSE: {train_rmse}')
+print(f'Test RMSE: {test_rmse}')
+
+# Plot the results
+train = t_cases[:train_size]
+valid = t_cases[train_size:]
+valid['Predictions'] = test_predict
+
+plt.figure(figsize=(14, 7))
+plt.plot(train['ds'], train['y'], label='Train Data')
+plt.plot(valid['ds'], valid[['y', 'Predictions']], label=['Test Data', 'Predictions'])
+plt.xlabel('Date')
+plt.ylabel('Confirmed Cases')
+plt.title('COVID-19 Confirmed Cases Prediction using LSTM')
+plt.legend()
+plt.show()
 
 
